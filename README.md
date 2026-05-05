@@ -44,12 +44,25 @@ npm run test:e2e    # playwright (local, auto-starts dev server)
 PLAYWRIGHT_BASE_URL=https://maquette.vercel.app npm run test:e2e -- e2e/prod-smoke.spec.ts
 ```
 
-## Deploy
+## Deploy (InsForge-managed Vercel)
 
-1. `vercel link` (or import the repo via the Vercel dashboard)
-2. Set the env vars above in the Vercel project (Production + Preview)
-3. `vercel --prod`
-4. Run the prod smoke suite against the deployment URL
+Production URL: **https://k8j86yip.insforge.site**
+
+```bash
+# 1. Set persistent env vars once (encrypted at rest on InsForge)
+npx @insforge/cli deployments env set NEXT_PUBLIC_INSFORGE_URL      https://k8j86yip.us-east.insforge.app
+npx @insforge/cli deployments env set NEXT_PUBLIC_INSFORGE_ANON_KEY <anon-key>
+npx @insforge/cli deployments env set INSFORGE_API_KEY              <admin-key>
+npx @insforge/cli deployments env set IP_HASH_SALT                  "$(openssl rand -hex 32)"
+npx @insforge/cli deployments env set NEXT_PUBLIC_APP_URL           https://k8j86yip.insforge.site
+
+# 2. Deploy the source tree (the CLI zips, excludes node_modules/.next/.env, and builds remotely)
+npm run build                          # local build first to catch errors cheaply
+npx @insforge/cli deployments deploy .
+
+# 3. Smoke the deployed URL
+PLAYWRIGHT_BASE_URL=https://k8j86yip.insforge.site npm run test:e2e -- e2e/prod-smoke.spec.ts
+```
 
 The `/r/[code]` route is a Node runtime route handler — Vercel
 injects `x-forwarded-for`, `x-vercel-ip-country`, `-region`, and `-city`
