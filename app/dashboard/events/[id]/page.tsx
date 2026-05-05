@@ -7,38 +7,30 @@ import {
 import { shortUrl } from "@/lib/urls";
 import { InlineCreateLink } from "./InlineCreateLink";
 import { LinkRow } from "./LinkRow";
+import { StackedArea } from "@/components/charts/StackedArea";
+import { stackedByPlacement } from "@/lib/analytics";
+import type { PlacementType } from "@/lib/tracking-links";
 
 export const dynamic = "force-dynamic";
 
-async function loadScanStats(linkIds: string[]): Promise<{
-  counts: Record<string, number>;
-  lastScan: Record<string, string>;
-}> {
-  if (linkIds.length === 0) return { counts: {}, lastScan: {} };
+async function loadScanRows(
+  linkIds: string[],
+): Promise<Array<{ tracking_link_id: string; scanned_at: string }>> {
+  if (linkIds.length === 0) return [];
   const token = await getAccessToken();
-  if (!token) return { counts: {}, lastScan: {} };
+  if (!token) return [];
   const client = createServerClient(token);
 
   const { data } = await client.database
     .from("scans")
     .select("tracking_link_id, scanned_at")
-    .in("tracking_link_id", linkIds);
+    .in("tracking_link_id", linkIds)
+    .order("scanned_at", { ascending: true });
 
-  const rows = (data ?? []) as Array<{
+  return (data ?? []) as Array<{
     tracking_link_id: string;
     scanned_at: string;
   }>;
-
-  const counts: Record<string, number> = {};
-  const lastScan: Record<string, string> = {};
-  for (const row of rows) {
-    counts[row.tracking_link_id] = (counts[row.tracking_link_id] ?? 0) + 1;
-    const prev = lastScan[row.tracking_link_id];
-    if (!prev || row.scanned_at > prev) {
-      lastScan[row.tracking_link_id] = row.scanned_at;
-    }
-  }
-  return { counts, lastScan };
 }
 
 export default async function EventDetailPage({
@@ -51,12 +43,28 @@ export default async function EventDetailPage({
   if (!result) notFound();
   const { event, links } = result;
 
-  const stats = await loadScanStats(links.map((l) => l.id));
+  const scans = await loadScanRows(links.map((l) => l.id));
 
-  const totalScans = Object.values(stats.counts).reduce(
-    (acc, n) => acc + n,
-    0,
+  const counts: Record<string, number> = {};
+  const lastScan: Record<string, string> = {};
+  for (const row of scans) {
+    counts[row.tracking_link_id] = (counts[row.tracking_link_id] ?? 0) + 1;
+    const prev = lastScan[row.tracking_link_id];
+    if (!prev || row.scanned_at > prev) {
+      lastScan[row.tracking_link_id] = row.scanned_at;
+    }
+  }
+  const totalScans = scans.length;
+
+  const now = new Date();
+  const thirtyAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const linkTypes = new Map<string, PlacementType>(
+    links.map((l) => [l.id, l.placement_type]),
   );
+  const stackedRows = stackedByPlacement(scans, linkTypes, {
+    from: thirtyAgo.toISOString(),
+    to: now.toISOString(),
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -79,6 +87,15 @@ export default async function EventDetailPage({
           <div className="text-xs text-muted-foreground">total scans</div>
         </div>
       </div>
+
+      {totalScans > 0 ? (
+        <section className="space-y-2 rounded-lg border border-border p-4">
+          <h2 className="text-sm font-medium text-muted-foreground">
+            Scans — last 30 days, by placement type
+          </h2>
+          <StackedArea rows={stackedRows} />
+        </section>
+      ) : null}
 
       <section className="space-y-3">
         <h2 className="text-sm font-medium text-muted-foreground">
@@ -108,8 +125,8 @@ export default async function EventDetailPage({
                     key={link.id}
                     link={link}
                     shortUrl={shortUrl(link.short_code)}
-                    scanCount={stats.counts[link.id] ?? 0}
-                    lastScanAt={stats.lastScan[link.id] ?? null}
+                    scanCount={counts[link.id] ?? 0}
+                    lastScanAt={lastScan[link.id] ?? null}
                   />
                 ))}
               </tbody>
