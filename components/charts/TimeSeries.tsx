@@ -11,14 +11,25 @@ import {
   YAxis,
 } from "recharts";
 
+type Granularity = "day" | "hour";
+
+function formatTick(value: string, granularity: Granularity): string {
+  if (granularity === "hour") {
+    // "2026-05-04T09:00" -> "05-04 09"
+    return value.slice(5, 10) + " " + value.slice(11, 13);
+  }
+  // "2026-05-04" -> "05-04"
+  return value.slice(5);
+}
+
 export function TimeSeries({
   rows,
   xKey,
-  xLabel,
+  granularity = "day",
 }: {
   rows: Array<Record<string, string | number>>;
   xKey: string;
-  xLabel: (value: string) => string;
+  granularity?: Granularity;
 }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -35,7 +46,7 @@ export function TimeSeries({
           <XAxis
             dataKey={xKey}
             tick={{ fontSize: 11 }}
-            tickFormatter={(v) => xLabel(v as string)}
+            tickFormatter={(v) => formatTick(String(v), granularity)}
           />
           <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
           <Tooltip />

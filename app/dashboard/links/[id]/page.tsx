@@ -154,7 +154,6 @@ export default async function LinkDetailPage({
           <TimeSeries
             rows={daily.map((d) => ({ date: d.date, count: d.count }))}
             xKey="date"
-            xLabel={(d) => d.slice(5)}
           />
         </div>
       </section>
