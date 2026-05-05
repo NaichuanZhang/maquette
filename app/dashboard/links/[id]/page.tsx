@@ -13,6 +13,7 @@ import {
   summarizeCountries,
   summarizeDevices,
 } from "@/lib/analytics";
+import { countUniqueScansSince } from "@/lib/dedup";
 import { shortUrl } from "@/lib/urls";
 import type { TrackingLinkRow } from "@/lib/tracking-links";
 import type { DeviceType } from "@/lib/ua-parse";
@@ -97,11 +98,7 @@ export default async function LinkDetailPage({
     dayRange,
   );
 
-  const last24 = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const scansInWindow = scans.filter((s) => s.scanned_at >= last24);
-  const unique24 = new Set(
-    scansInWindow.map((s) => `${s.ip_hash ?? ""}|${s.ua_hash ?? ""}`),
-  ).size;
+  const unique24 = countUniqueScansSince(scans, 24);
 
   const devices = summarizeDevices(scans);
   const countries = summarizeCountries(scans);
