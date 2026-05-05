@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -19,6 +20,10 @@ const COLORS: Record<string, string> = {
 };
 
 export function StackedArea({ rows }: { rows: StackedRow[] }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return <div className="h-60 w-full" aria-hidden />;
+
   return (
     <div className="h-60 w-full">
       <ResponsiveContainer width="100%" height="100%">

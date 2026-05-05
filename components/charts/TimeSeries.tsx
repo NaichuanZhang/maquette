@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   CartesianGrid,
   Line,
@@ -19,6 +20,13 @@ export function TimeSeries({
   xKey: string;
   xLabel: (value: string) => string;
 }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) {
+    return <div className="h-56 w-full" aria-hidden />;
+  }
+
   return (
     <div className="h-56 w-full">
       <ResponsiveContainer width="100%" height="100%">
