@@ -54,10 +54,16 @@ export async function GET(
     salt: salt(),
   });
 
-  try {
-    await admin.database.from("scans").insert([scan]);
-  } catch {
-    // Never fail the redirect because logging failed.
+  const { error: scanError } = await admin.database
+    .from("scans")
+    .insert([scan]);
+  if (scanError) {
+    // Surface logging failures — a 302 over a silently-broken logger is
+    // worse than an alert, because the dashboard looks empty for no reason.
+    console.error("scan insert failed", {
+      short_code: code,
+      message: scanError.message,
+    });
   }
 
   return NextResponse.redirect(event.luma_url, 302);
