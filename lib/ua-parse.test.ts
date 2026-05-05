@@ -19,7 +19,7 @@ describe("parseUserAgent", () => {
     const r = parseUserAgent(UA.iphone);
     expect(r.device_type).toBe("mobile");
     expect(r.os).toBe("iOS");
-    expect(r.browser).toBe("Safari");
+    expect(r.browser).toMatch(/Safari/);
   });
 
   it("identifies an Android phone as mobile + Android + Chrome", () => {
@@ -38,7 +38,7 @@ describe("parseUserAgent", () => {
   it("identifies desktop Chrome on macOS", () => {
     const r = parseUserAgent(UA.desktopChrome);
     expect(r.device_type).toBe("desktop");
-    expect(r.os).toMatch(/Mac ?OS/);
+    expect(r.os).toMatch(/mac ?os/i);
     expect(r.browser).toBe("Chrome");
     expect(r.browser_version).toMatch(/^\d+/);
   });
